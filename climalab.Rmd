@@ -1,0 +1,295 @@
+---
+title: "Resultats de l'enquesta sobre el clima laboral en els centres assistencials per a persones usuàries de drogues"
+author: "Servei de Prevenció i Atenció a les Drogodependències"
+date: "25/10/2021"
+output:
+  powerpoint_presentation:
+    reference_doc: Plantilla_v3.pptx
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+#install.packages("dplyr")
+#install.packages("tidyverse")
+#install.packages("summarytools")
+#install.packages("pastecs")
+#install.packages("readxl")
+#install.packages("likert")
+#install.packages("car")
+#install.packages("knitr")
+#install.packages("DT")
+#install.packages("ggplot2")
+#install.packages("forcats")
+#install.packages("fmsb")
+
+library("readr")
+library("plyr")
+library("grid")
+library("dplyr")
+library("tidyr")
+library("likert")
+library(dplyr)
+library(tidyverse)
+library(summarytools)
+library(pastecs)
+library(readxl)
+library(likert)
+library(car)
+library(knitr)
+library(DT)
+library(ggplot2)
+library(forcats)
+library(fmsb)
+library(scales)
+
+# buscar la ruta del archivo de excel
+#file.choose()
+
+# Copiar ruta de la consola y guardar en variable
+ruta_excel <- "\\\\aspblfs\\usuaris$\\ext_jmolero\\Escritorio\\SurveyReport-8397158-10-04-2021-T030344.481.xlsx"
+#ruta_excel <- "C:/Users/Usuario/Documents/Medicina Preventiva y Salud Pública/R1/ASPB/SEPAD/Enquesta clima laboral CAS/SurveyReport-8397158-10-04-2021-T030344.481.xlsx"
+
+
+# importar datos
+laboral <- read_excel(ruta_excel,
+                         sheet = 'Datos sin procesar',
+                      range = 'R1:BI76')
+
+laboralabs <- read_excel(ruta_excel,
+                         sheet = 'Datos sin procesar',
+                         range = 'R1:BI76')
+
+# eliminar fila 1 (está en blanco)
+laboral <- laboral[-1, ]
+laboralabs <- laboralabs[-1, ]
+
+#eliminar columnas con un 100% de NA
+colMeans(is.na(laboral))
+borrarcolumnas <- which(colMeans(is.na(laboral))==1)
+laboral[ , borrarcolumnas] <- NULL
+
+colMeans(is.na(laboralabs))
+borrarcolumnasabs <- which(colMeans(is.na(laboralabs))==1)
+laboralabs[ , borrarcolumnasabs] <- NULL
+
+# identificar els CAS
+laboral$`Quin és el teu centre de treball?`[laboral$`Quin és el teu centre de treball?` == 1] <- "CAS Sarrià"
+laboral$`Quin és el teu centre de treball?`[laboral$`Quin és el teu centre de treball?` == 2] <- "CAS Sants"
+laboral$`Quin és el teu centre de treball?`[laboral$`Quin és el teu centre de treball?` == 3] <- "CAS Nou Barris"
+laboral$`Quin és el teu centre de treball?`[laboral$`Quin és el teu centre de treball?` == 4] <- "CAS Horta-Guinardó"
+laboral$`Quin és el teu centre de treball?`[laboral$`Quin és el teu centre de treball?` == 5] <- "CAS Garbivent"
+laboral$`Quin és el teu centre de treball?`[laboral$`Quin és el teu centre de treball?` == 6] <- "Unitat de Dispensació Mòbil"
+laboral$`Quin és el teu centre de treball?`[laboral$`Quin és el teu centre de treball?` == 7] <- "CAS Baluard"
+laboral$`Quin és el teu centre de treball?`[laboral$`Quin és el teu centre de treball?` == 8] <- "CRD Robador"
+laboral$`Quin és el teu centre de treball?`[laboral$`Quin és el teu centre de treball?` == 9] <- "Alberg"
+
+# categroizar la escala likert
+# 1, 2, 3, 4 = Negatiu (1)
+laboral[laboral == 2] <- 1
+laboral[laboral == 3] <- 1
+laboral[laboral == 4] <- 1
+
+# 5, 6 = Mig (2) 
+laboral[laboral == 5] <- 2
+laboral[laboral == 6] <- 2
+
+# 7, 8, 9, 10 = Positiu (3)
+laboral[laboral == 7] <- 3
+laboral[laboral == 8] <- 3
+laboral[laboral == 9] <- 3
+laboral[laboral == 10] <- 3
+
+
+laboral[ , 2:34] <- lapply(laboral[ , 2:34], function(x){ factor(x,
+                                                                  levels = c("1", "2", "3"),
+                                                                  labels = c("Negativa", "Mitja", "Positiva"))})
+
+# nou df amb les mitjanes per a cada pregunta
+Mitjana_2021 <- colMeans(laboralabs[ , 2:34], na.rm = FALSE)
+
+Mitjana_2021 <- data.frame(Mitjana_2021)
+
+# afegir al df amb les mitjanes les mitjanes del 2016
+
+Mitjana_2016 <- c(7.12,8.51,7.22,6.73,5.86,6.63,7.51,7.86,NA,5.38,5.49,5.51,4.88,6.10,8.08,6.37,6.88,7.16,5.71,7.51,6.92,8.12,6.16,6.80,6.57,6.20,6.62,5.16,4.53,4.34,7.35,8.02,6.22)
+
+Mitjana_2021 <- data.frame(Mitjana_2016, Mitjana_2021)
+
+Diferencia <- Mitjana_2021$Mitjana_2021 - Mitjana_2021$Mitjana_2016
+
+Mitjana_2021 <- data.frame(Diferencia, Mitjana_2021)
+
+Mitjana_2021 <- Mitjana_2021[,c(3,2,1)]
+
+Mitjana_2021$Mitjana_2021 <- round(Mitjana_2021$Mitjana_2021, digits = 2)
+
+Mitjana_2021$Diferencia <- round(Mitjana_2021$Diferencia, digits = 2)
+
+# semàfor de la diferència entre mitjanes
+
+Mitjana_2021 <- Mitjana_2021 %>%
+  mutate(Diferencia=case_when(Diferencia >=0.1 ~ "Millora",  Diferencia >=-0.1 & Diferencia <=0.1  ~ "Es manté", Diferencia <=-0.1 ~ "Empitjora"))
+
+xlab <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)
+
+Mitjana_2021 <- data.frame(xlab, Mitjana_2021)
+
+Mitjana_2021<-tibble::rownames_to_column(Mitjana_2021, "preguntes")
+
+Mitjana_2021 <- Mitjana_2021[order(nrow(Mitjana_2021):1),]
+
+# nova variable treballadors/es a qui es va enviar l'enquesta
+participants <- table(laboral$`Quin és el teu centre de treball?`)
+
+total_treballadores <- c(27, 38, 12, 18, 11, 19, 10, 15, 7)
+
+participacio <- data.frame(participants, total_treballadores)
+
+participacio_per_centre <- (participacio$Freq/participacio$total_treballadores*100)
+
+participacio <- data.frame(participants, total_treballadores, participacio_per_centre)
+
+participacio$participacio_per_centre <- round(participacio$participacio_per_centre, digits = 0)
+```
+
+## Objectiu
+
+Presentació dels resultats de l'enquesta online de "Satisfacció sobre el clima laboral", realitzada entre tot el personal dels Centres Assistencials per a persones usuàries de drogues (Tractament i Reducció de Danys) de l'Agència de Salut Pública de Barcelona, entre XXX i XXX del 2021.
+
+---
+
+## Índex
+
+- Participació.
+- Resultats per a cada pregunta agregats per tots els centres participants.
+- Comparació de les mitjanes de les respostes d'enguany amb les de l'enquesta realitzada el 2016.
+- Propostes de millora.
+
+---
+
+## Participació
+
+```{r participacio, echo = FALSE, fig.width=12, fig.height=6}
+participacio %>%
+  mutate(name = fct_reorder(Var1, desc(participacio_per_centre))) %>%
+  ggplot( aes(x=Var1, y=participacio_per_centre)) +
+    geom_bar(stat="identity", fill="lightblue", alpha=.6, width=.4) +
+    coord_flip() +
+    xlab("Centre") +
+  ylab("Participació (%)") +
+  geom_text(aes(label = participacio_per_centre)) +
+    theme_bw()
+```
+
+
+---
+
+## Mètodes
+
+- Percentatge de respostes: negatives (1-4), mitjanes (5-6), positives (7-10).
+
+- Comparació mitjanes 2016 - 2021: millora (>[0,1]), es manté (entre [0,1] i [-0,1]), empitjora (<[-0.1]).
+
+- Anàlisi qualtitativa de les propostes de millora.
+
+---
+
+## Resultats: satisfacció, tasca professional i motivació
+
+```{r likerta, echo = FALSE, fig.width=14, fig.height=8}
+lik <- likert(as.data.frame(laboral[ , c(2,3,4,5,6,7,32)]))
+
+plot(lik, wrap = 60, text.size=5, ordered = TRUE,
+     legend = "Resposta", legend.position = "bottom") + theme(axis.text.y = element_text(size="14"))
+```
+
+---
+
+## Resultats: reconeixement, desenvolupament personal i retribució
+
+```{r likertb, echo = FALSE, fig.width=14, fig.height=8}
+lik <- likert(as.data.frame(laboral[ , c(8,9,10,11,28,29,30,31)]))
+
+plot(lik, wrap = 60, text.size=5, ordered = TRUE,
+     legend = "Resposta", legend.position = "bottom") + theme(axis.text.y = element_text(size="14"))
+```
+
+---
+
+## Resultats: gestió, organització i comunicació interna
+
+```{r likertc, echo = FALSE, fig.width=14, fig.height=8}
+lik <- likert(as.data.frame(laboral[ , c(17,18,19,20,21,24,25,26,27)]))
+
+plot(lik, wrap = 60, text.size=5, ordered = TRUE,
+     legend = "Resposta", legend.position = "bottom") + theme(axis.text.y = element_text(size="14"))
+```
+
+---
+
+## Resultats: entorn de treball, condicions del centre i valoració de l'enquesta
+
+```{r likertd, echo = FALSE, fig.width=14, fig.height=8}
+lik <- likert(as.data.frame(laboral[ , c(12,13,14,15,16,22,23,33,34)]))
+
+plot(lik, wrap = 60, text.size=5, ordered = TRUE,
+     legend = "Resposta", legend.position = "bottom") + theme(axis.text.y = element_text(size="14"))
+```
+
+---
+
+## Comparació de mitjanes 2016-2021
+
+```{r dotplot, echo = FALSE, fig.width=14, fig.height=8}
+dotchart(Mitjana_2021$Mitjana_2021, pch = 21, labels = Mitjana_2021$preguntes, xlab = "Mitjanes 2016-2021",
+         pt.cex = 1.5, ylim = range(Mitjana_2021$Mitjana_2016, Mitjana_2021$Mitjana_2021) + c(-2, 2))
+
+invisible(sapply(1:nrow(Mitjana_2021), function(i) {
+  segments(min(Mitjana_2021$Mitjana_2021[i], Mitjana_2021$Mitjana_2016[i]), i,
+           max(Mitjana_2021$Mitjana_2021[i], Mitjana_2021$Mitjana_2016[i]), i, lwd = 2)}))
+
+points(Mitjana_2021$Mitjana_2016, 1:nrow(Mitjana_2021), col = "black", bg = "black", pch = 21, cex = 1.5)
+points(Mitjana_2021$Mitjana_2021, 1:nrow(Mitjana_2021), col = "black", pch = 21, bg = (case_when(Mitjana_2021$Diferencia == 'Millora' ~ 'green')), cex = 1.5)
+points(Mitjana_2021$Mitjana_2021, 1:nrow(Mitjana_2021), col = "black", pch = 21, bg = (case_when(Mitjana_2021$Diferencia == 'Empitjora' ~ 'red')), cex = 1.5)
+points(Mitjana_2021$Mitjana_2021, 1:nrow(Mitjana_2021), col = "black", pch = 21, bg = (case_when(Mitjana_2021$Diferencia == 'Es manté' ~ 'yellow')), cex = 1.5)
+legend("topleft", legend=c("2016", "2021 millora", "2021 es manté", "2021 empitjora"),
+       col=c("black", "green", "yellow", "red"), pt.bg = c("black", "green", "yellow", "red"), pch = c(21,21,21,21), cex=1.1)
+```
+
+---
+
+## Propostes de millora
+
+```{r propostes1, echo = FALSE, fig.width=10, fig.height=6}
+Tipus_de_propostes <- c('Millors condicions laborals', 'Millores en atenció als usuaris', 'Formació i foment de la investigació del personal', 'Millora de les instal.lacions i eines de treball', 'Millores a la comunicació interna i en la relació entre professionals', 'Canvis en la dinàmica, metodologia interna i perspectiva dels centres', 'Altres', 'Millores en la direcció i coordinació dels centres', 'Rebre més feedback per part de l´ASPB', 'Millorar la relació externa amb altres centres i serveis', 'Millores en les condicions de seguretat')
+
+Numero_de_propostes <- c(27, 5, 5, 12, 3, 4, 1, 4, 3, 1, 3)
+
+propostes <- data.frame(Tipus_de_propostes, Numero_de_propostes)
+
+propostes %>%
+  mutate(name = fct_reorder(Tipus_de_propostes, Numero_de_propostes)) %>%
+  ggplot( aes(x=Tipus_de_propostes, y=Numero_de_propostes)) +
+    geom_bar(stat="identity", fill="lightblue", alpha=.6, width=.4) +
+    coord_flip() +
+    xlab("Tipus de proposta") +
+  ylab("Número de propostes") +
+   geom_text(aes(label = Numero_de_propostes)) +
+    theme_bw()
+```
+
+---
+
+## Propostes de millora
+
+```{r}
+exemples_propostes <- c('text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text')
+
+exprop <- data.frame(Tipus_de_propostes, exemples_propostes)
+
+kable(exprop)
+```
+
+---
